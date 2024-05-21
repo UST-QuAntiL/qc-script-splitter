@@ -61,7 +61,7 @@ def write_blocks(block, all_functions, imports, result):
         #fw.close()
 
         pa_writer = open(f'{directory}/polling_agent.py', 'w')
-        polling_agent = generate_polling_agent(block['parameters'], block['return_variables'])
+        polling_agent = generate_polling_agent(block, block['parameters'], block['return_variables'])
         pa_writer.write(polling_agent)
         templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
                                       'templates')

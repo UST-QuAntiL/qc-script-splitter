@@ -23,7 +23,7 @@ import tempfile
 from os.path import basename
 
 
-def generate_polling_agent(parameters, return_values):
+def generate_polling_agent(block, parameters, return_values):
     # Read from polling agent template
 
      # directory containing all templates required for generation
@@ -55,8 +55,26 @@ def generate_polling_agent(parameters, return_values):
 
     content = content.replace("### LOAD INPUT DATA ###", load_data_str)
 
-    call_str = ", ".join(return_values)
-    if len(return_values) > 0:
+    # Keep track of return variables to be excluded
+    excluded_return_variables = []
+    for line in block["lines"]:
+            if line.type == "endl":
+                continue
+            line_content = line.dumps()
+            # Skip lines containing "kwargs" and note the variables to exclude
+            if "kwargs" in line_content:
+                # Check if this line sets a return variable
+                for var in return_values:
+                    if var in line_content:
+                        excluded_return_variables.append(var)
+                continue
+
+        # Filter out excluded return variables
+    filtered_return_variables = [var for var in return_values if var not in excluded_return_variables]
+
+    call_str = ", ".join(filtered_return_variables)
+
+    if len(filtered_return_variables) > 0:
         call_str += " = "
     call_str += "app.main(" + ", ".join(parameters) + ")"
     content = content.replace("### CALL SCRIPT PART ###", call_str)
@@ -81,7 +99,7 @@ def generate_polling_agent(parameters, return_values):
     outputHandler = '\n'
     outputHandler += '                    body = {"workerId": "' + pollingAgentName + '"}\n'
     outputHandler += '                    body["variables"] = {}\n'
-    for outputParameter in return_values:
+    for outputParameter in filtered_return_variables:
         # encode output parameter as file to circumvent the Camunda size restrictions on strings
         outputHandler += '\n'
         outputHandler += '                    if isinstance(' + outputParameter + ', str):\n'
