@@ -11,17 +11,36 @@ def create_output(block):
         parameters = block["parameters"]
     else:
         parameters = []
+
     if 'return_variables' in block:
         return_variables = block["return_variables"]
     else:
         return_variables = []
+
     res = f'def main({", ".join(parameters)}):\n'
+
+    # Keep track of return variables to be excluded
+    excluded_return_variables = []
+
     for line in block["lines"]:
         if line.type == "endl":
             continue
-        res += f"    {line.dumps()}\n"
-    if len(block['return_variables']) > 0:
-        res += f'    return {", ".join(return_variables)}\n'
+        line_content = line.dumps()
+        # Skip lines containing "kwargs" and note the variables to exclude
+        if "kwargs" in line_content:
+            # Check if this line sets a return variable
+            for var in return_variables:
+                if var in line_content:
+                    excluded_return_variables.append(var)
+            continue
+        res += f"    {line_content}\n"
+
+    # Filter out excluded return variables
+    filtered_return_variables = [var for var in return_variables if var not in excluded_return_variables]
+
+    if len(filtered_return_variables) > 0:
+        res += f'    return {", ".join(filtered_return_variables)}\n'
+
     return res
 
 
