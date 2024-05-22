@@ -24,17 +24,54 @@ import json
 import os
 import tempfile
 from os.path import basename
+import string
+import random
+from io import BytesIO
+import requests
+
+def fetch_file_from_url(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return BytesIO(response.content)
 
 @app.route('/qc-script-splitter/api/v1.0/split-implementation', methods=['POST'])
 def split_implementation():
-    if not request.json or not 'implementation-url' in request.json:
+    # Extract required input data
+    if not request.files.get('script'):
+        if not request.json or not 'implementation-url' in request.json:
+            print('Not all required parameters available in request: ')
+            abort(400)
+    
+    if 'script' in request.files:
+        script_file = request.files["script"]
+    elif 'implementation-url' in request.json:
+        script_url = request.json['implementation-url']
+        script_file = fetch_file_from_url(script_url)
+    else:
         abort(400)
 
-    in_path = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
-                                      'input/hybrid_program_kmeans.py')
-    f = open(in_path, "r")
-    
-    job = app.queue.enqueue('app.tasks.do_the_split', request.json["implementation-url"])
+    # Store file with required programs in local file and forward path to the workers
+    directory = app.config["UPLOAD_FOLDER"]
+    app.logger.info('Storing file comprising required programs at folder: ' + str(directory))
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    random_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    script_file_name = 'script' + random_string + '.zip'
+
+    # Save the script file appropriately
+    script_file_path = os.path.join(directory, script_file_name)
+    if isinstance(script_file, BytesIO):
+        with open(script_file_path, 'wb') as f:
+            f.write(script_file.getvalue())
+    else:
+        script_file.save(script_file_path)
+
+    script_url = url_for('download_uploaded_file', name=os.path.basename(script_file_name))
+    app.logger.info('File available via URL: ' + str(script_url))
+    #script_file.save(os.path.join(directory, fileName))
+
+    # Assuming you have set up RQ and defined app.queue and app.tasks.do_the_split correctly
+    job = app.queue.enqueue('app.tasks.do_the_split', script_url)
 
     result = Result(id=job.get_id())
     db.session.add(result)
@@ -88,3 +125,8 @@ def heartbeat():
 @app.route('/qc-script-splitter/api/v1.0/hybrid-programs/<name>')
 def download_generated_file(name):
     return send_from_directory(app.config["RESULT_FOLDER"], name)
+
+@app.route('/qc-script-splitter/api/v1.0/uploads/<name>')
+def download_uploaded_file(name):
+    return send_from_directory(app.config["UPLOAD_FOLDER"], name)
+

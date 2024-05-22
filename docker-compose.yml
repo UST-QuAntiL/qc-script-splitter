@@ -31,6 +31,8 @@ services:
     environment:
       - REDIS_URL=redis://redis:5040
       - DATABASE_URL=sqlite:////data/app.db
+      - FLASK_RUN_HOST=qc-script-splitter
+      - FLASK_RUN_PORT=1612
     volumes:
       - exec_data:/data
     depends_on:

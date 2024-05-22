@@ -37,6 +37,9 @@ from os.path import basename
 import zipfile
 from rq import get_current_job
 import tempfile
+from os import listdir
+from tempfile import mkdtemp
+import urllib.request
 
 
 def execute(provider, impl_url, impl_data, impl_language, transpiled_qasm, input_params, token, access_key_aws,
@@ -46,37 +49,64 @@ def execute(provider, impl_url, impl_data, impl_language, transpiled_qasm, input
     app.logger.info("Starting execute task...")
     
 
-def do_the_split(implementationUrl):
+def do_the_split(implementations_url):
 
     # directory containing all templates required for generation
-    templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
-                                      'input')
-    
+    directory = mkdtemp()
     job = get_current_job()
+    script_url = 'http://' + os.environ.get('FLASK_RUN_HOST') + ':' + os.environ.get('FLASK_RUN_PORT') + implementations_url
+    app.logger.info("Retrieve implementation from url")
+    app.logger.info(script_url)
+
+    
     # insert results into job object
     result = Result.query.get(job.get_id())
+
+    downloadPath, response = urllib.request.urlretrieve(script_url, "service.zip")
+    with zipfile.ZipFile(downloadPath, "r") as zip_ref:
+        directory = mkdtemp()
+        app.logger.info('Extracting to directory: ' + str(directory))
+        zip_ref.extractall(directory)
+
+        # zip contains one folder per task within the candidate
+        zipContents = [f for f in listdir(directory)]
+        app.logger.info(zipContents)
+    
+        for zipContent in zipContents:
+            app.logger.info("analyze the content of the zip file")
+
+            if search_python_file(os.path.join(directory, zipContent)) != None:
+                pythonfile = search_python_file(os.path.join(directory, zipContent))
+
+            if search_requirements_file(os.path.join(directory, zipContent)) != None:
+                requirementsfile = search_requirements_file(os.path.join(directory, zipContent))
+                continue
+            #requirementsfile = search_requirements_file(os.path.join(directory, zipContents[0]))
+    
+        if pythonfile != None:
+            app.logger.info(pythonfile)
+            # RedBaron object containing all information about the hybrid program to generate
+            with open(os.path.join(pythonfile), "r") as source_code:
+                    splitterBaron = RedBaron(source_code.read())
+                    all_but_main = splitterBaron.findAll("DefNode", name=lambda n: n != "main")
+                    main_function = splitterBaron.findAll("DefNode", name=lambda n: n == "main")[0]
+                    all_imports = splitterBaron.findAll("import")
+
+                    scripts_analyzer = ScriptAnalyzer(main_function)
+                    analyzer_result = scripts_analyzer.get_result()
+
+                    write_blocks(pythonfile, requirementsfile, analyzer_result, all_but_main, all_imports, result)
+
+                    foobar = WorkflowJson(analyzer_result)
+                    wf_result = foobar.get_result()
+                    #wf_json_writer = open("output/workflow.json", "w")
+                    #wf_json_writer.write(json.dumps(wf_result, indent=4))
+                    result.agent = zip_workflow_result(wf_result)
+                    print(json.dumps(wf_result))
+
+    app.logger.info("generated ")
     
     app.logger.info('Program generation successful!')
-    # RedBaron object containing all information about the hybrid program to generate
-    with open(os.path.join(templatesDirectory, 'hybrid_program_kmeans.py'), "r") as source_code:
-        splitterBaron = RedBaron(source_code.read())
-        all_but_main = splitterBaron.findAll("DefNode", name=lambda n: n != "main")
-        main_function = splitterBaron.findAll("DefNode", name=lambda n: n == "main")[0]
-        all_imports = splitterBaron.findAll("import")
-
-        scripts_analyzer = ScriptAnalyzer(main_function)
-        analyzer_result = scripts_analyzer.get_result()
-
-        write_blocks(analyzer_result, all_but_main, all_imports, result)
-
-        foobar = WorkflowJson(analyzer_result)
-        wf_result = foobar.get_result()
-        #wf_json_writer = open("output/workflow.json", "w")
-        #wf_json_writer.write(json.dumps(wf_result, indent=4))
-        result.agent = zip_workflow_result(wf_result)
-        print(json.dumps(wf_result))
-
-    print("generated ")
 
 
     # update database
@@ -118,3 +148,23 @@ def zip_workflow_result(workflowResult):
     zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
     zipObj = open('../polling_agent_wrapper.zip', "rb")
     return zipObj.read()
+
+def search_python_file(directory):
+    app.logger.info("find python file inside zip")
+    app.logger.info(directory)
+    # only .py are supported, also nested in zip files
+    if directory.endswith('.py'):
+        app.logger.info('Found Python file with name: ' + str(directory))
+
+        # we only support one file, in case there are multiple files, try the first one
+        return os.path.join(directory)
+
+def search_requirements_file(directory):
+    app.logger.info("find requirements file inside zip")
+    app.logger.info(directory)
+    # only .py are supported, also nested in zip files
+    if directory.endswith('.txt'):
+        app.logger.info('Found requirements file with name: ' + str(directory))
+
+        # we only support one file, in case there are multiple files, try the first one
+        return os.path.join(directory)

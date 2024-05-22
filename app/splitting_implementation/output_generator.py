@@ -44,7 +44,7 @@ def create_output(block):
     return res
 
 
-def write_blocks(block, all_functions, imports, result):
+def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result):
     if block["type"] == "block":
         directory = f'output/{block["id"]}/service'
         if not os.path.exists(directory):
@@ -85,14 +85,14 @@ def write_blocks(block, all_functions, imports, result):
             print("generated app.py for ")
             print(startingPointTemp.name)
 
-        result.program = zip_polling_agent("", polling_agent, startingPointTemp, block["id"])
+        result.program = zip_polling_agent(requirementsfile, polling_agent, startingPointTemp, block["id"])
         dockerfile_reader = open(os.path.join(templatesDirectory, 'Dockerfile'), "r")
         dockerfile_writer = open(f'output/{block["id"]}/Dockerfile', 'w')
         dockerfile_writer.write(dockerfile_reader.read())
 
     elif block["type"] == "wrapper":
         for block in block["blocks"]:
-            write_blocks(block, all_functions, imports, result)
+            write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result)
 
 
 def zip_folder(folder_path, starting_point, zipObj, script_folder_name):
