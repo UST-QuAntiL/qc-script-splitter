@@ -90,7 +90,14 @@ def do_the_split(implementations_url):
                     splitterBaron = RedBaron(source_code.read())
                     all_but_main = splitterBaron.findAll("DefNode", name=lambda n: n != "main")
                     main_function = splitterBaron.findAll("DefNode", name=lambda n: n == "main")[0]
-                    all_imports = splitterBaron.findAll("import")
+                    # Find all 'import ...' statements
+                    import_statements = splitterBaron.find_all('ImportNode')
+
+                    # Find all 'from ... import ...' statements
+                    from_import_statements = splitterBaron.find_all('FromImportNode')
+
+                    # Combine both import statements
+                    all_imports = import_statements + from_import_statements
 
                     scripts_analyzer = ScriptAnalyzer(main_function)
                     analyzer_result = scripts_analyzer.get_result()
