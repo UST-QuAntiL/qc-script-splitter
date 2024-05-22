@@ -60,7 +60,7 @@ flask db upgrade
 Start a worker for the request queue:
 
 ```
-rq worker --url redis://$DOCKER_ENGINE_IP:5040 qc-script-splitting-handler
+rq worker --url redis://$DOCKER_ENGINE_IP:5040 qc-script-splitter
 ```
 
 Finally, start the Flask application, e.g., using PyCharm or the command line.
