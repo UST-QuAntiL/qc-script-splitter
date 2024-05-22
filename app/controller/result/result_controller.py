@@ -12,7 +12,7 @@ blp = Blueprint(
 )
 
 
-@blp.route("/script-splitter/api/v1.0/results/<id>", methods=["GET"])
+@blp.route("/qc-script-splitter/api/v1.0/results/<id>", methods=["GET"])
 @blp.response(200, SplitImplementationResponseSchema)
 def encoding(json):
     if json:

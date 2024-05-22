@@ -31,7 +31,7 @@ class Config(object):
 
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:5040'
 
-    API_TITLE = "script-splitter"
+    API_TITLE = "qc-script-splitter"
     API_VERSION = "0.1"
     OPENAPI_VERSION = "3.0.2"
     OPENAPI_URL_PREFIX = "/api"
@@ -41,8 +41,8 @@ class Config(object):
 
     API_SPEC_OPTIONS = {
         "info": {
-            "description": "This is the API Specification of the script-splitter ("
-            "https://github.com/UST-QuAntiL/script-splitter).",
+            "description": "This is the API Specification of the qc-script-splitter ("
+            "https://github.com/UST-QuAntiL/qc-script-splitter).",
         },
         "license": {"name": "Apache v2 License"},
     }

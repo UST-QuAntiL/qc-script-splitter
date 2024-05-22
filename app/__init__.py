@@ -37,7 +37,7 @@ from app.controller import register_blueprints
 from flask_smorest import Api
 
 app.redis = Redis.from_url(app.config['REDIS_URL'], port=5040)
-app.queue = rq.Queue('script-splitter', connection=app.redis, default_timeout=10000)
+app.queue = rq.Queue('qc-script-splitter', connection=app.redis, default_timeout=10000)
 app.logger.setLevel(logging.INFO)
 
 

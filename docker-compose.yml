@@ -12,11 +12,11 @@ services:
     networks:
       - default
 
-  script-splitter:
-    image: planqk/script-splitter:local
+  qc-script-splitter:
+    image: planqk/qc-script-splitter:local
     command: sh /app/startup.sh
     ports:
-      - "5013:5013"
+      - "1612:1612"
     environment:
       - REDIS_URL=redis://redis:5040
       - DATABASE_URL=sqlite:////data/app.db
@@ -26,8 +26,8 @@ services:
       - default
 
   rq-worker:
-    image: planqk/script-splitter:local
-    command: rq worker --url redis://redis:5040 script-splitter
+    image: planqk/qc-script-splitter:local
+    command: rq worker --url redis://redis:5040 qc-script-splitter
     environment:
       - REDIS_URL=redis://redis:5040
       - DATABASE_URL=sqlite:////data/app.db

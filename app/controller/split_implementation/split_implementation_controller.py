@@ -16,7 +16,7 @@ blp = Blueprint(
 )
 
 
-@blp.route("/script-splitter/api/v1.0/split-implementation", methods=["POST"])
+@blp.route("/qc-script-splitter/api/v1.0/split-implementation", methods=["POST"])
 @blp.doc(description="*Note*: \"splitting-threshold\" is optional.")
 @blp.arguments(
     SplitImplementationRequestSchema,

@@ -25,7 +25,7 @@ import os
 import tempfile
 from os.path import basename
 
-@app.route('/script-splitter/api/v1.0/split-implementation', methods=['POST'])
+@app.route('/qc-script-splitter/api/v1.0/split-implementation', methods=['POST'])
 def split_implementation():
     if not request.json or not 'implementation-url' in request.json:
         abort(400)
@@ -41,14 +41,14 @@ def split_implementation():
     db.session.commit()
 
     app.logger.info('Returning HTTP response to client...')
-    content_location = '/script-splitter/api/v1.0/results/' + result.id
+    content_location = '/qc-script-splitter/api/v1.0/results/' + result.id
     response = jsonify({'Location': content_location})
     response.status_code = 202
     response.headers['Location'] = content_location
     response.autocorrect_location_header = True
     return response
 
-@app.route('/script-splitter/api/v1.0/results/<result_id>', methods=['GET'])
+@app.route('/qc-script-splitter/api/v1.0/results/<result_id>', methods=['GET'])
 def get_result(result_id):
     """Return result when it is available."""
     result = Result.query.get(result_id)
@@ -77,7 +77,7 @@ def get_result(result_id):
         return jsonify({'id': result.id, 'complete': result.complete}), 200
 
 
-@app.route('/script-splitter/api/v1.0/version', methods=['GET'])
+@app.route('/qc-script-splitter/api/v1.0/version', methods=['GET'])
 def version():
     return jsonify({'version': '1.0'})
 
@@ -85,6 +85,6 @@ def version():
 def heartbeat():
     return '<h1>script splitter is running</h1> <h3>View the API Docs <a href="/api/swagger-ui">here</a></h3>'
 
-@app.route('/script-splitter/api/v1.0/hybrid-programs/<name>')
+@app.route('/qc-script-splitter/api/v1.0/hybrid-programs/<name>')
 def download_generated_file(name):
     return send_from_directory(app.config["RESULT_FOLDER"], name)

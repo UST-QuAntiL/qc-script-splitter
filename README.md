@@ -1,55 +1,66 @@
-# qiskit-service
-
-This service takes a Qiskit or OpenQASM implementation as data or via a URL and returns either compiled circuit properties and the transpiled OpenQASM String (Transpilation Request) or its results (Execution Request) depending on the input data and selected backend.
-
-
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-## Setup
-* Clone repository:
+# qc-script-splitter
+
+This service takes a Python-based quantum implementation (i.e., a Python file and a requirements.txt file) as input and splits it into its quantum and classical parts.
+It further generates a workflow.
+Additionally, an agent is generated which handles the transfer of input/output parameters between the script parts and the workflow.
+
+The qc-script-splitter can be used in conjunction with the [QuantME Modeler](https://github.com/PlanQK/workflow-modeler).
+
+## Docker Setup
+
+* Clone the repository:
 ```
-git clone https://github.com/UST-QuAntiL/qiskit-service.git
-git clone git@github.com:UST-QuAntiL/qiskit-service.git
+git clone https://github.com/UST-QuAntiL/qc-qc-script-splitter.git
 ```
 
-* Start containers:
+* Start the containers using the [docker-compose file](docker-compose.yml):
 ```
 docker-compose pull
 docker-compose up
 ```
 
-Now the qiskit-service is available on http://localhost:5013/.
-## API Documentation
-The qiskit-service provides a Swagger UI, specifying the request schemas and showcasing exemplary requests for all API endpoints.
-* http://localhost:5013/api/swagger-ui
+Now the qc-script-splitter is available on http://localhost:1612/.
 
-The OpenAPI specifications are also statically available:
-[OpenAPI JSON](./docs/api/openapi.json)  
-[OpenAPI YAML](./docs/api/openapi.yaml)
+## Local Setup
 
-_Note_: To run the setup as a developer, see [here](./docs/dev/run-as-dev.md).
+### Start Redis
 
-## Using IonQ QPUs
-To execute quantum circuits on IonQ QPUs an IonQ account with the respective access rights is required.
-The IonQ API token has to be provided in the request body to transpile or execute quantum circuits on IonQ QPUs.
+Start Redis, e.g., using Docker:
 
-## Using AWS Braket QPUs
-To execute quantum circuits on AWS Braket QPUs via the qiskit service, an AWS IAM account with the Braket Group membership is required.
-The AWS access key and the AWS secret access key have to be provided in the request json body to transpile or execute quantum circuits for/on AWS Braket QPUs.
+```
+docker run -p 5040:5040 redis --port 5040
+```
 
-_Note_: The default region for this request is `eu-west-2` (Europe London) but can also be changed by providing the region under the `region` key within the `input_params` in the request json body.
-Do note though that the region has to be selected depending on the QPU to use. For more details, see [here](https://docs.aws.amazon.com/braket/latest/developerguide/braket-regions.html).
+### Configure the qc-script-splitter
 
-## Sample Implementations for Transpilation and Execution
-Sample implementations can be found [here](https://github.com/UST-QuAntiL/nisq-analyzer-content/tree/master/example-implementations).
-Please use the raw GitHub URL as `impl-url` value (see [example](https://raw.githubusercontent.com/UST-QuAntiL/nisq-analyzer-content/master/example-implementations/Shor/shor-general-qiskit.py)).
+Before starting the qc-script-splitter, define the following environment variables:
 
-## Haftungsausschluss
+```
+FLASK_RUN_PORT=1612
+REDIS_URL=redis://$DOCKER_ENGINE_IP:5040
+```
 
-Dies ist ein Forschungsprototyp.
-Die Haftung für entgangenen Gewinn, Produktionsausfall, Betriebsunterbrechung, entgangene Nutzungen, Verlust von Daten und Informationen, Finanzierungsaufwendungen sowie sonstige Vermögens- und Folgeschäden ist, außer in Fällen von grober Fahrlässigkeit, Vorsatz und Personenschäden, ausgeschlossen.
+Thereby, please replace $DOCKER_ENGINE_IP with the actual IP of the Docker engine you started the Redis container.
 
-## Disclaimer of Warranty
+### Configure the Database
 
-Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE.
-You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.
+* Install SQLite DB, e.g., as described [here](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-iv-database)
+* Create a `data` folder in the `app` folder
+* Setup the results table with the following commands:
+
+```
+flask db migrate -m "results table"
+flask db upgrade
+```
+
+### Start the Application
+
+Start a worker for the request queue:
+
+```
+rq worker --url redis://$DOCKER_ENGINE_IP:5040 qc-script-splitting-handler
+```
+
+Finally, start the Flask application, e.g., using PyCharm or the command line.
