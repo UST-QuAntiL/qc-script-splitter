@@ -137,32 +137,40 @@ def zip_polling_agent(requirements, polling_agent, starting_point, script_id):
     # Create a folder with the script_id name
     script_folder_name = f"{script_id}/"
 
-    # Open the zip file in the appropriate mode
+    # Create the first service.zip
+    service_zip_path = '../service.zip'
+    with zipfile.ZipFile(service_zip_path, 'w') as zipObj1:
+        # Write polling agent code to a temporary file and add it to the zip
+        with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as polling_temp:
+            polling_temp.write(polling_agent.encode())
+            zipObj1.write(polling_temp.name, 'polling_agent.py')
+
+        # Add the starting_point file as 'app.py'
+        zipObj1.write(starting_point.name, 'app.py')
+
+        # Add the requirements file
+        with open(os.path.join(templatesDirectory, 'requirements.txt'), 'rb') as requirements_file:
+            zipObj1.writestr('requirements.txt', requirements_file.read())
+
+    # Create the second service.zip containing the first service.zip and Dockerfile
+    second_service_zip_path = '../second_service.zip'
+    with zipfile.ZipFile(second_service_zip_path, 'w') as zipObj2:
+        # Add the first service.zip
+        zipObj2.write(service_zip_path, 'service.zip')
+
+        # Add the Dockerfile
+        zipObj2.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
+
+    # Open the main zip file in the appropriate mode
     with zipfile.ZipFile(polling_agent_wrapper_path, mode) as zipObj:
-        
         # Add Dockerfile and requirements.txt from templates directory if they don't exist
         if 'Dockerfile' not in zipObj.namelist():
             zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
         if 'requirements.txt' not in zipObj.namelist():
             zipObj.write(os.path.join(templatesDirectory, 'requirements.txt'), 'requirements.txt')
-        
-        #zipObj.write(starting_point.name, f"{script_folder_name}app.py")
-        
-        # Create a new ZipFile object to hold the hybrid program
-        with zipfile.ZipFile('../service.zip', 'w') as zipObj2:
 
-            # Write polling agent code to a temporary file and add it to the zip
-            with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as polling_temp:
-                polling_temp.write(polling_agent.encode())
-                zipObj2.write(polling_temp.name, 'polling_agent.py')
-
-            # Add the starting_point file as 'app.py'
-            zipObj2.write(starting_point.name, 'app.py')
-            zipObj2.write(starting_point.name, 'requirements.txt')
-        
-        # Add the zip file to the main zip file
-        zipObj.write('../service.zip', f"{script_folder_name}service.zip")
-        zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), f"{script_folder_name}Dockerfile")
+        # Add the second service.zip to the main zip file
+        zipObj.write(second_service_zip_path, f"{script_folder_name}service.zip")
 
     # Read the updated zip file and return its content
     with open(polling_agent_wrapper_path, "rb") as zipFile:
@@ -170,8 +178,6 @@ def zip_polling_agent(requirements, polling_agent, starting_point, script_id):
 
     print("Zip polling agent")
     return zip_content
-
-
 
 
 
