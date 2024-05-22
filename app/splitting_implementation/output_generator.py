@@ -26,8 +26,8 @@ def create_output(block):
         if line.type == "endl":
             continue
         line_content = line.dumps()
-        # Skip lines containing "kwargs" and note the variables to exclude
-        if "kwargs" in line_content:
+        # Skip lines containing "kwargs" or "user_messenger" and note the variables to exclude
+        if "kwargs" in line_content or "user_messenger" in line_content:
             # Check if this line sets a return variable
             for var in return_variables:
                 if var in line_content:

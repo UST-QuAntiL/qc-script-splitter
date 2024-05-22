@@ -62,7 +62,7 @@ def generate_polling_agent(block, parameters, return_values):
                 continue
             line_content = line.dumps()
             # Skip lines containing "kwargs" and note the variables to exclude
-            if "kwargs" in line_content:
+            if "kwargs" in line_content or "user_messenger" in line_content:
                 # Check if this line sets a return variable
                 for var in return_values:
                     if var in line_content:
