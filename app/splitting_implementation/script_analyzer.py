@@ -71,15 +71,17 @@ def get_params(lines):
             right_hand_side = line.value
             variables = get_vars(right_hand_side)
             unknown_variables.extend(
-                x for x in variables if x not in unknown_variables and x not in return_variables and x != "kwargs"
+                x for x in variables if x not in unknown_variables and x not in return_variables and x != "kwargs" and x != "user_messenger"
             )
             left_hand_side = line.target
+            print(left_hand_side)
             if left_hand_side.type == "name":
                 print("name")
                 print(left_hand_side)
                 if left_hand_side.value not in return_variables:
                     return_variables.append(left_hand_side.value)
             elif left_hand_side.type == "tuple":
+                print("tuple")
                 print(left_hand_side.value)
                 for var in left_hand_side.value:
                     if var.value not in return_variables:
@@ -117,6 +119,7 @@ class ScriptAnalyzer:
         for argument in codeblock.arguments.find_all('name'):
             print(argument.value)
             if argument.value != "kwargs":
+            #and argument.value != "user_messenger":
                 print("add argument")
                 main_arguments.append(argument.value)
         self.result['parameters'] = main_arguments
@@ -130,6 +133,9 @@ class ScriptAnalyzer:
         result_wrapper = {"name": name, "type": "wrapper", "blocks": []}
         current_block = {"name": "init", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
         for line in codeblock:
+            print(codeblock)
+            print("linie")
+            print(line)
             if line.type == 'comment' and "# SPLIT" in line.value:
                 if not is_empty(current_block):
                     result_wrapper["blocks"].append(current_block.copy())
