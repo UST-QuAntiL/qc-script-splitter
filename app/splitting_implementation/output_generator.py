@@ -145,19 +145,22 @@ def zip_polling_agent(requirements, polling_agent, starting_point, script_id):
         if 'requirements.txt' not in zipObj.namelist():
             zipObj.write(os.path.join(templatesDirectory, 'requirements.txt'), 'requirements.txt')
         
-        zipObj.write(starting_point.name, f"{script_folder_name}app.py")
+        #zipObj.write(starting_point.name, f"{script_folder_name}app.py")
         
         # Create a new ZipFile object to hold the hybrid program
-        with zipfile.ZipFile('../hybrid_program.zip', 'w') as zipObj2:
-            # Add the starting_point file as 'hybrid_program.py'
-            zipObj2.write(starting_point.name, 'hybrid_program.py')
+        with zipfile.ZipFile('../service.zip', 'w') as zipObj2:
             # Write polling agent code to a temporary file and add it to the zip
             with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as polling_temp:
                 polling_temp.write(polling_agent.encode())
-                zipObj2.write(polling_temp.name, f"{script_folder_name}polling_agent.py")
+                
+                # Add the starting_point file as 'app.py'
+                zipObj2.write(starting_point.name, 'app.py')
+
+                zipObj2.write(polling_temp.name, 'polling_agent.py')
+
         
         # Add the hybrid program zip file to the main zip file
-        zipObj.write('../hybrid_program.zip', f"{script_folder_name}hybrid_program.zip")
+        zipObj.write('../service.zip', f"{script_folder_name}service.zip")
 
     # Read the updated zip file and return its content
     with open(polling_agent_wrapper_path, "rb") as zipFile:
