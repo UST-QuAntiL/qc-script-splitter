@@ -71,6 +71,8 @@ def do_the_split(implementations_url):
         # zip contains one folder per task within the candidate
         zipContents = [f for f in listdir(directory)]
         app.logger.info(zipContents)
+        pythonfile = None
+        requirementsfile = None
     
         for zipContent in zipContents:
             app.logger.info("analyze the content of the zip file")

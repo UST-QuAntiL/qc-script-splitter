@@ -1,10 +1,31 @@
 from redbaron import RedBaron
+from app import app
 
 def is_empty(block):
-    if len(block["lines"]) == 0:
+    app.logger.info("block is not empty")
+    app.logger.info(block)
+    # Define the lines to skip
+    # Define the lines to skip
+    linesToSkip = ["user_messenger"]
+    
+    # Filter out lines that contain any content from linesToSkip
+    def should_skip(line):
+        app.logger.info(line)
+        for skip_content in linesToSkip:
+            app.logger.info(skip_content)
+            app.logger.info(line.dumps())
+            if skip_content in line.dumps():
+                return True
+        return False
+
+    filtered_lines = [line for line in block["lines"] if not should_skip(line)]
+    
+    if len(filtered_lines) == 0:
         return True
     else:
-        for line in block["lines"]:
+        for line in filtered_lines:
+            app.logger.info("line in block")
+            app.logger.info(line)
             if line.type != "endl":
                 return False
         return True
@@ -113,9 +134,19 @@ class ScriptAnalyzer:
     result = []
 
     def __init__(self, codeblock):
+        # Find the assignment to `serialized_result`
+        app.logger.info("init script analyzer")
+        for node in codeblock.find_all('AssignmentNode'):
+
+            print("assigment node")
+            print(node)
+            if node.target.value == 'serialized_result':
+                node.parent.remove(node)
+                break
         self.result = self.get_blocks(codeblock, "root")
         add_ids(self.result)
         main_arguments = []
+        
         for argument in codeblock.arguments.find_all('name'):
             print(argument.value)
             if argument.value != "kwargs":
@@ -124,6 +155,7 @@ class ScriptAnalyzer:
                 main_arguments.append(argument.value)
         self.result['parameters'] = main_arguments
         print(main_arguments)
+
         compute_variables(self.result)
 
     def get_result(self):
@@ -138,12 +170,15 @@ class ScriptAnalyzer:
             print(line)
             if line.type == 'comment' and "# SPLIT" in line.value:
                 if not is_empty(current_block):
+                    print("create block split")
                     result_wrapper["blocks"].append(current_block.copy())
                 if line.value[9:]:
                     part_name = line.value[9:].replace(" ", "_")
                     wf_type = get_wf_type(line.value[9:])
+                    print("create block quantme")
                     current_block = {"name": part_name, "type": "block", "wf_type": wf_type, "lines": []}
                 else:
+                    print("create block empty")
                     current_block = {"name": "next", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
             elif line.type == 'while':
                 if not is_empty(current_block):
@@ -162,6 +197,8 @@ class ScriptAnalyzer:
                     result_wrapper["blocks"].append(break_block)
                     current_block = {"name": "next", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
             else:
+                print("add lines to block")
+                print(current_block)
                 current_block["lines"].append(line)
         if not is_empty(current_block):
             result_wrapper["blocks"].append(current_block)

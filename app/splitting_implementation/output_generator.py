@@ -4,13 +4,14 @@ from subprocess import PIPE, run
 import zipfile
 import tempfile
 import shutil
-
+from app import app
 
 def create_output(block):
     if 'parameters' in block:
         parameters = block["parameters"]
     else:
         parameters = []
+        app.logger.info("check and return")
 
     if 'return_variables' in block:
         return_variables = block["return_variables"]
@@ -40,37 +41,45 @@ def create_output(block):
 
     if len(filtered_return_variables) > 0:
         res += f'    return {", ".join(filtered_return_variables)}\n'
+    if len(filtered_return_variables) == 0 and len(parameters) == 0:
+        return None
 
     return res
 
-
 def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result):
+    if block["type"] == "block":
+        if create_output(block) == None:
+            app.logger.info(f"Skipping block as it has no body")
+            app.logger.info(block["id"])
+            return
+
     if block["type"] == "block":
         directory = f'output/{block["id"]}/service'
         if not os.path.exists(directory):
             os.makedirs(directory)
 
         fw = open(f'{directory}/app.py', 'w')
-        #for imp in imports:
-         #   fw.write(imp.dumps())
-          #  fw.write('\n')
+        # for imp in imports:
+        #     fw.write(imp.dumps())
+        #     fw.write('\n')
 
-        #fw.write(create_output(block))
-        #fw.write('\n')
-        #fw.write(all_functions.dumps())
-        #fw.close()
+        # fw.write(create_output(block))
+        # fw.write('\n')
+        # fw.write(all_functions.dumps())
+        # fw.close()
 
         pa_writer = open(f'{directory}/polling_agent.py', 'w')
         polling_agent = generate_polling_agent(block, block['parameters'], block['return_variables'])
         pa_writer.write(polling_agent)
         templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
-                                      'templates')
+                                          'templates')
         startingPointTemp = tempfile.NamedTemporaryFile(suffix=".py", delete=False)
         print("Working on block")
         print(block["id"])
         with open(startingPointTemp.name, "w") as starting_point2:
-            
             for imp in imports:
+                print("imp")
+                print(imp)
                 starting_point2.write(imp.dumps())
                 starting_point2.write('\n')
             starting_point2.write(create_output(block))
@@ -91,9 +100,8 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
         dockerfile_writer.write(dockerfile_reader.read())
 
     elif block["type"] == "wrapper":
-        for block in block["blocks"]:
-            write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result)
-
+        for sub_block in block["blocks"]:
+            write_blocks(pythonfile, requirementsfile, sub_block, all_functions, imports, result)
 
 def zip_folder(folder_path, starting_point, zipObj, script_folder_name):
     # Create a temporary directory to store the files inside the folder
@@ -103,7 +111,6 @@ def zip_folder(folder_path, starting_point, zipObj, script_folder_name):
     # Copy all files and directories from the original folder to the temporary directory
     for root, dirs, files in os.walk(folder_path):
         for file in files:
-            
             file_path = os.path.join(root, file)
             print(file_path)
             relative_path = os.path.relpath(file_path, folder_path)
@@ -112,7 +119,7 @@ def zip_folder(folder_path, starting_point, zipObj, script_folder_name):
             shutil.copy(file_path, target_path)
 
     # Write the app.py file to the temporary directory
-    #shutil.copy(starting_point.name, os.path.join(temp_folder_path, 'app.py'))
+    # shutil.copy(starting_point.name, os.path.join(temp_folder_path, 'app.py'))
 
     # Zip the temporary directory
     service_zip_path = os.path.join(temp_folder_path, 'service.zip')
@@ -179,8 +186,6 @@ def zip_polling_agent(requirements, polling_agent, starting_point, script_id):
     print("Zip polling agent")
     return zip_content
 
-
-
 def zip_workflow_result(workflowResult):
     templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
                                       'splitting_implementation/templates')
@@ -196,4 +201,4 @@ def zip_workflow_result(workflowResult):
     zipObj.write(workflowTemp.name, 'workflow.json')
     zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
     zipObj = open('../polling_agent_wrapper.zip', "rb")
-    return zipObj.read()
+    return zipObj.read() 
