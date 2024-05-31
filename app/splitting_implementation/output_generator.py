@@ -171,10 +171,10 @@ def zip_polling_agent(requirements, polling_agent, starting_point, script_id):
     # Open the main zip file in the appropriate mode
     with zipfile.ZipFile(polling_agent_wrapper_path, mode) as zipObj:
         # Add Dockerfile and requirements.txt from templates directory if they don't exist
-        if 'Dockerfile' not in zipObj.namelist():
-            zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
-        if 'requirements.txt' not in zipObj.namelist():
-            zipObj.write(os.path.join(templatesDirectory, 'requirements.txt'), 'requirements.txt')
+        #if 'Dockerfile' not in zipObj.namelist():
+            #zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
+        #if 'requirements.txt' not in zipObj.namelist():
+            #zipObj.write(os.path.join(templatesDirectory, 'requirements.txt'), 'requirements.txt')
 
         # Add the second service.zip to the main zip file
         zipObj.write(second_service_zip_path, f"{script_folder_name}service.zip")
@@ -199,6 +199,6 @@ def zip_workflow_result(workflowResult):
         source_code.write(json.dumps(workflowResult, indent=4))
     zipObj = zipfile.ZipFile('../polling_agent_wrapper.zip', 'w')
     zipObj.write(workflowTemp.name, 'workflow.json')
-    zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
+    #zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
     zipObj = open('../polling_agent_wrapper.zip', "rb")
     return zipObj.read() 

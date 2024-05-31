@@ -154,7 +154,7 @@ def zip_workflow_result(workflowResult):
         source_code.write(json.dumps(workflowResult, indent=4))
     zipObj = zipfile.ZipFile('../polling_agent_wrapper.zip', 'w')
     zipObj.write(workflowTemp.name, 'workflow.json')
-    zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
+    #zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
     zipObj = open('../polling_agent_wrapper.zip', "rb")
     return zipObj.read()
 
