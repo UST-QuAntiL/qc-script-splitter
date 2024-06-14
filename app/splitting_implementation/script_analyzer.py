@@ -32,7 +32,15 @@ def is_empty(block):
 
 
 def get_wf_type(part_name):
-    if "circuit" in part_name.lower() and "exec" in part_name.lower():
+    app.logger.info("part name")
+    app.logger.info(part_name)
+    app.logger.info(part_name.lower())
+    if "classical" in part_name.lower():
+        app.logger.info("write part name")
+        return "bpmn:ServiceTask"
+    elif "circuit" in part_name.lower() and "generation" in part_name.lower():
+        return "quantme:QuantumCircuitExecutionTask"
+    elif "circuit" in part_name.lower() and "exec" in part_name.lower():
         return "quantme:QuantumCircuitExecutionTask"
     elif "result" in part_name.lower() and "eval" in part_name.lower():
         return "quantme:ResultEvaluationTask"
@@ -128,7 +136,6 @@ def compute_variables(block):
         params = get_vars(condition[0])
         block['parameters'] = params
 
-
 class ScriptAnalyzer:
 
     result = []
@@ -138,7 +145,7 @@ class ScriptAnalyzer:
         app.logger.info("init script analyzer")
         for node in codeblock.find_all('AssignmentNode'):
 
-            print("assigment node")
+            print("assignment node")
             print(node)
             if node.target.value == 'serialized_result':
                 node.parent.remove(node)
@@ -150,7 +157,6 @@ class ScriptAnalyzer:
         for argument in codeblock.arguments.find_all('name'):
             print(argument.value)
             if argument.value != "kwargs":
-            #and argument.value != "user_messenger":
                 print("add argument")
                 main_arguments.append(argument.value)
         self.result['parameters'] = main_arguments
@@ -165,8 +171,7 @@ class ScriptAnalyzer:
         result_wrapper = {"name": name, "type": "wrapper", "blocks": []}
         current_block = {"name": "init", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
         for line in codeblock:
-            print(codeblock)
-            print("linie")
+            print("processing line")
             print(line)
             if line.type == 'comment' and "# SPLIT" in line.value:
                 if not is_empty(current_block):
@@ -187,6 +192,13 @@ class ScriptAnalyzer:
                 while_block = self.get_blocks(line, 'while_wrapper')
                 while_block["condition"] = line.test.dumps()
                 result_wrapper["blocks"].append(while_block)
+            elif line.type == 'for':
+                if not is_empty(current_block):
+                    result_wrapper["blocks"].append(current_block.copy())
+                current_block = {"name": "next", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
+                for_block = self.get_blocks(line, 'for_wrapper')
+                for_block["condition"] = line.target.dumps()
+                result_wrapper["blocks"].append(for_block)
             elif line.type == 'pass':
                 pass
             elif line.type == 'ifelseblock':
