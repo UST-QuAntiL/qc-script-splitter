@@ -5,6 +5,7 @@ import zipfile
 import tempfile
 import shutil
 from app import app
+import ast
 
 def create_output(block):
     if 'parameters' in block:
@@ -46,7 +47,15 @@ def create_output(block):
 
     return res
 
-def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result):
+def find_global_assignments(codeblock):
+    app.logger.info("global")
+    global_assignments = []
+    for node in codeblock.find_all('assignment'):
+            if not node.parent_find('def'):
+                global_assignments.append(node.dumps())
+    return global_assignments
+
+def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result, global_assignments):
     if block["type"] == "block":
         if create_output(block) == None:
             app.logger.info(f"Skipping block as it has no body")
@@ -73,6 +82,11 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
                     print("imp")
                     print(imp)
                     starting_point2.write(imp.dumps())
+                    starting_point2.write('\n')
+                for var in global_assignments:
+                    app.logger.info("globalassi")
+                    app.logger.info(var)
+                    starting_point2.write(var)
                     starting_point2.write('\n')
                 starting_point2.write(create_output(block))
                 starting_point2.write('\n')
@@ -106,7 +120,7 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
 
     elif block["type"] == "wrapper":
         for sub_block in block["blocks"]:
-            write_blocks(pythonfile, requirementsfile, sub_block, all_functions, imports, result)
+            write_blocks(pythonfile, requirementsfile, sub_block, all_functions, imports, result, global_assignments)
 
 def zip_folder(folder_path, starting_point, zipObj, script_folder_name):
     # Create a temporary directory to store the files inside the folder

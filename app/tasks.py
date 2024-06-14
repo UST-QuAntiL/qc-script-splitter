@@ -40,6 +40,7 @@ import tempfile
 from os import listdir
 from tempfile import mkdtemp
 import urllib.request
+import ast
 
 
 def execute(provider, impl_url, impl_data, impl_language, transpiled_qasm, input_params, token, access_key_aws,
@@ -101,10 +102,14 @@ def do_the_split(implementations_url):
                     # Combine both import statements
                     all_imports = import_statements + from_import_statements
 
+                    global_assignments = find_global_assignments(splitterBaron)
+
+                    
+
                     scripts_analyzer = ScriptAnalyzer(main_function)
                     analyzer_result = scripts_analyzer.get_result()
 
-                    write_blocks(pythonfile, requirementsfile, analyzer_result, all_but_main, all_imports, result)
+                    write_blocks(pythonfile, requirementsfile, analyzer_result, all_but_main, all_imports, result, global_assignments)
 
                     foobar = WorkflowJson(analyzer_result)
                     wf_result = foobar.get_result()
@@ -118,10 +123,18 @@ def do_the_split(implementations_url):
     app.logger.info('Program generation successful!')
 
 
+
+
     # update database
     result.complete = True
     db.session.commit()
 
+def find_global_assignments(redbaron):
+        global_assignments = []
+        for node in redbaron.find_all('assignment'):
+            if not node.parent_find('def'):
+                global_assignments.append(node.dumps())
+        return global_assignments
 
 def zip_polling_agent(requirements, polling_agent, starting_point):
     templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
