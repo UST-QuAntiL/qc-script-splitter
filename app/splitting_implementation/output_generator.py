@@ -59,15 +59,6 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
             os.makedirs(directory)
 
         fw = open(f'{directory}/app.py', 'w')
-        # for imp in imports:
-        #     fw.write(imp.dumps())
-        #     fw.write('\n')
-
-        # fw.write(create_output(block))
-        # fw.write('\n')
-        # fw.write(all_functions.dumps())
-        # fw.close()
-
         pa_writer = open(f'{directory}/polling_agent.py', 'w')
         polling_agent = generate_polling_agent(block, block['parameters'], block['return_variables'])
         pa_writer.write(polling_agent)
@@ -76,15 +67,25 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
         startingPointTemp = tempfile.NamedTemporaryFile(suffix=".py", delete=False)
         print("Working on block")
         print(block["id"])
-        with open(startingPointTemp.name, "w") as starting_point2:
-            for imp in imports:
-                print("imp")
-                print(imp)
-                starting_point2.write(imp.dumps())
+        try:
+            with open(startingPointTemp.name, "w") as starting_point2:
+                for imp in imports:
+                    print("imp")
+                    print(imp)
+                    starting_point2.write(imp.dumps())
+                    starting_point2.write('\n')
+                starting_point2.write(create_output(block))
                 starting_point2.write('\n')
-            starting_point2.write(create_output(block))
-            starting_point2.write('\n')
-            starting_point2.write(all_functions.dumps())
+                starting_point2.write(all_functions.dumps())
+                
+            # Ensure the file is properly closed
+            starting_point2.close()
+
+            # Print the content of the startingPointTemp file
+            with open(startingPointTemp.name, "r") as sp_file:
+                print("Content of startingPointTemp:")
+                print(sp_file.read())
+
             path = os.path.join(templatesDirectory, startingPointTemp.name)
             command = ["deadcode", path, "--ignore-names", "main", "--fix"]
             for i in range(10):
@@ -94,7 +95,11 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
             print("generated app.py for ")
             print(startingPointTemp.name)
 
-        result.program = zip_polling_agent(requirementsfile, polling_agent, startingPointTemp, block["id"])
+            result.program = zip_polling_agent(requirementsfile, polling_agent, startingPointTemp, block["id"])
+        finally:
+            # Ensure the temporary file is deleted after use
+            os.remove(startingPointTemp.name)
+        
         dockerfile_reader = open(os.path.join(templatesDirectory, 'Dockerfile'), "r")
         dockerfile_writer = open(f'output/{block["id"]}/Dockerfile', 'w')
         dockerfile_writer.write(dockerfile_reader.read())
@@ -134,57 +139,68 @@ def zip_folder(folder_path, starting_point, zipObj, script_folder_name):
 def zip_polling_agent(requirements, polling_agent, starting_point, script_id):
     templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
                                       'templates')
-    # Get the path to the existing zip file or create a new one if it doesn't exist
     polling_agent_wrapper_path = f'../polling_agent_wrapper.zip'
     if os.path.exists(polling_agent_wrapper_path):
         mode = 'a'  # Append mode
     else:
         mode = 'w'  # Write mode
 
-    # Create a folder with the script_id name
     script_folder_name = f"{script_id}/"
+    
+    # Log the starting point file
+    print("STARTING POINT:", starting_point.name)
 
-    # Create the first service.zip
     service_zip_path = '../service.zip'
-    with zipfile.ZipFile(service_zip_path, 'w') as zipObj1:
-        # Write polling agent code to a temporary file and add it to the zip
-        with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as polling_temp:
-            polling_temp.write(polling_agent.encode())
-            zipObj1.write(polling_temp.name, 'polling_agent.py')
+    try:
+        with zipfile.ZipFile(service_zip_path, 'w') as zipObj1:
+            # Write polling agent code to a temporary file and add it to the zip
+            with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as polling_temp:
+                polling_temp.write(polling_agent.encode())
+                zipObj1.write(polling_temp.name, 'polling_agent.py')
 
-        # Add the starting_point file as 'app.py'
-        zipObj1.write(starting_point.name, 'app.py')
+            # Add the starting_point file as 'app.py'
+            if os.path.exists(starting_point.name):
+                zipObj1.write(starting_point.name, 'app.py')
+            else:
+                raise FileNotFoundError(f"Starting point file {starting_point.name} not found")
 
-        # Add the requirements file
-        with open(os.path.join(templatesDirectory, 'requirements.txt'), 'rb') as requirements_file:
-            zipObj1.writestr('requirements.txt', requirements_file.read())
+            # Add the requirements file
+            with open(os.path.join(templatesDirectory, 'requirements.txt'), 'rb') as requirements_file:
+                zipObj1.writestr('requirements.txt', requirements_file.read())
+    except Exception as e:
+        print(f"Error creating service.zip: {e}")
+        raise
 
-    # Create the second service.zip containing the first service.zip and Dockerfile
     second_service_zip_path = '../second_service.zip'
-    with zipfile.ZipFile(second_service_zip_path, 'w') as zipObj2:
-        # Add the first service.zip
-        zipObj2.write(service_zip_path, 'service.zip')
+    try:
+        with zipfile.ZipFile(second_service_zip_path, 'w') as zipObj2:
+            # Add the first service.zip
+            zipObj2.write(service_zip_path, 'service.zip')
 
-        # Add the Dockerfile
-        zipObj2.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
+            # Add the Dockerfile
+            zipObj2.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
+    except Exception as e:
+        print(f"Error creating second_service.zip: {e}")
+        raise
 
-    # Open the main zip file in the appropriate mode
-    with zipfile.ZipFile(polling_agent_wrapper_path, mode) as zipObj:
-        # Add Dockerfile and requirements.txt from templates directory if they don't exist
-        #if 'Dockerfile' not in zipObj.namelist():
-            #zipObj.write(os.path.join(templatesDirectory, 'Dockerfile'), 'Dockerfile')
-        #if 'requirements.txt' not in zipObj.namelist():
-            #zipObj.write(os.path.join(templatesDirectory, 'requirements.txt'), 'requirements.txt')
+    try:
+        with zipfile.ZipFile(polling_agent_wrapper_path, mode) as zipObj:
+            # Add the second service.zip to the main zip file
+            zipObj.write(second_service_zip_path, f"{script_folder_name}service.zip")
+    except Exception as e:
+        print(f"Error creating polling_agent_wrapper.zip: {e}")
+        raise
 
-        # Add the second service.zip to the main zip file
-        zipObj.write(second_service_zip_path, f"{script_folder_name}service.zip")
-
-    # Read the updated zip file and return its content
-    with open(polling_agent_wrapper_path, "rb") as zipFile:
-        zip_content = zipFile.read()
+    try:
+        with open(polling_agent_wrapper_path, "rb") as zipFile:
+            zip_content = zipFile.read()
+    except Exception as e:
+        print(f"Error reading polling_agent_wrapper.zip: {e}")
+        raise
 
     print("Zip polling agent")
     return zip_content
+
 
 def zip_workflow_result(workflowResult):
     templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
