@@ -57,7 +57,7 @@ def find_global_assignments(codeblock):
 
 def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result, global_assignments):
     if block["type"] == "block":
-        if create_output(block) == None:
+        if create_output(block) is None:
             app.logger.info(f"Skipping block as it has no body")
             app.logger.info(block["id"])
             return
@@ -77,16 +77,12 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
         print("Working on block")
         print(block["id"])
         try:
+            # Initial write with imports, block content, and functions
             with open(startingPointTemp.name, "w") as starting_point2:
                 for imp in imports:
                     print("imp")
                     print(imp)
                     starting_point2.write(imp.dumps())
-                    starting_point2.write('\n')
-                for var in global_assignments:
-                    app.logger.info("globalassi")
-                    app.logger.info(var)
-                    starting_point2.write(var)
                     starting_point2.write('\n')
                 starting_point2.write(create_output(block))
                 starting_point2.write('\n')
@@ -109,6 +105,30 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
             print("generated app.py for ")
             print(startingPointTemp.name)
 
+            # Reinsert imports, global assignments, and adjust function positions
+            with open(startingPointTemp.name, "r+") as starting_point2:
+                content = starting_point2.read()
+                starting_point2.seek(0)
+                starting_point2.truncate()
+
+                # Find the position of the first def node
+                def_index = content.find('def ')
+                if def_index == -1:
+                    def_index = len(content)
+
+                new_content = ''
+                for imp in imports:
+                    new_content += imp.dumps() + '\n'
+                new_content += '\n'
+                new_content += content[:def_index]
+                for var in global_assignments:
+                    new_content += var + '\n'
+                new_content += content[def_index:]
+                starting_point2.write(new_content)
+            
+            # Ensure the file is properly closed
+            starting_point2.close()
+
             result.program = zip_polling_agent(requirementsfile, polling_agent, startingPointTemp, block["id"])
         finally:
             # Ensure the temporary file is deleted after use
@@ -121,6 +141,8 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
     elif block["type"] == "wrapper":
         for sub_block in block["blocks"]:
             write_blocks(pythonfile, requirementsfile, sub_block, all_functions, imports, result, global_assignments)
+
+# Rest of your script
 
 def zip_folder(folder_path, starting_point, zipObj, script_folder_name):
     # Create a temporary directory to store the files inside the folder
