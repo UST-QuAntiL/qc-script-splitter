@@ -52,7 +52,7 @@ class WorkflowJson:
         for x in inner_block["blocks"]:
             self.generate_wf(x)
 
-        self.wf_result.append({"id": second, "type": "bpmn:ExclusiveGateway", "condition": inner_block['condition']})
+        self.wf_result.append({"id": second, "type": "bpmn:ExclusiveGateway", "condition": "${" + inner_block['condition'] + "}"})
         self.append_sequence_flow(second)
         self.wf_result.append({"id": third, "type": "bpmn:ExclusiveGateway"})
         self.add_sequence_flow(second, first, "True")
