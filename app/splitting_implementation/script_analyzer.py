@@ -59,7 +59,7 @@ def add_ids(codeblock):
             add_ids(block)
     elif codeblock['type'] == "block":
         global id_counter
-        codeblock['id'] = str(id_counter) + '_' + codeblock['name']
+        codeblock['id'] = codeblock['name'] + '_' + str(id_counter)
         id_counter += 1
 
 def get_vars(node):
