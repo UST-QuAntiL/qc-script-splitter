@@ -37,17 +37,17 @@ def get_wf_type(part_name):
     app.logger.info(part_name.lower())
     if "classical" in part_name.lower():
         app.logger.info("write part name")
-        return "bpmn:ServiceTask"
+        return "bpmn:ServiceTask", "Update Variables"
     elif "circuit" in part_name.lower() and "generation" in part_name.lower():
-        return "quantme:QuantumCircuitExecutionTask"
+        return "quantme:QuantumCircuitLoadingTask", "Generate Circuit"
     elif "circuit" in part_name.lower() and "exec" in part_name.lower():
-        return "quantme:QuantumCircuitExecutionTask"
+        return "quantme:QuantumCircuitExecutionTask", "Execute Circuit"
     elif "result" in part_name.lower() and "eval" in part_name.lower():
-        return "quantme:ResultEvaluationTask"
+        return "quantme:ResultEvaluationTask", "Evaluate Results"
     elif "parameter" in part_name.lower() and "optimiz" in part_name.lower():
-        return "quantme:ParameterOptimizationTask"
+        return "quantme:ParameterOptimizationTask", "Optimize Parameters"
     print("Unknown QuantME type: " + part_name)
-    return part_name
+    return part_name, ""
 
 
 id_counter = 1
@@ -133,6 +133,10 @@ def compute_variables(block):
         block['parameters'] = params
     elif block['type'] in ["start_while", "break"]:
         condition = RedBaron(block['condition'])
+        print("compute variables")
+        app.logger.info("compute variables")
+        app.logger.info(condition[0])
+        print(condition[0])
         params = get_vars(condition[0])
         block['parameters'] = params
 
@@ -169,7 +173,7 @@ class ScriptAnalyzer:
 
     def get_blocks(self, codeblock, name):
         result_wrapper = {"name": name, "type": "wrapper", "blocks": []}
-        current_block = {"name": "init", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
+        current_block = {"name": "init", "label": "Current", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
         for line in codeblock:
             print("processing line")
             print(line)
@@ -179,18 +183,20 @@ class ScriptAnalyzer:
                     result_wrapper["blocks"].append(current_block.copy())
                 if line.value[9:]:
                     part_name = line.value[9:].replace(" ", "_")
-                    wf_type = get_wf_type(line.value[9:])
+                    wf_type, label = get_wf_type(line.value[9:])
                     print("create block quantme")
-                    current_block = {"name": part_name, "type": "block", "wf_type": wf_type, "lines": []}
+                    current_block = {"name": part_name, "label": label, "type": "block", "wf_type": wf_type, "lines": []}
                 else:
                     print("create block empty")
-                    current_block = {"name": "next", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
+                    # current_block = {"name": "next", "label": "Update Variables", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
             elif line.type == 'while':
                 if not is_empty(current_block):
                     result_wrapper["blocks"].append(current_block.copy())
-                current_block = {"name": "next", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
+                current_block = {"name": "next", "label": "Update Variables", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
                 while_block = self.get_blocks(line, 'while_wrapper')
                 while_block["condition"] = line.test.dumps()
+                print("condition")
+                print(line.test.dumps())
                 result_wrapper["blocks"].append(while_block)
             elif line.type == 'for':
                 if not is_empty(current_block):
@@ -205,9 +211,9 @@ class ScriptAnalyzer:
                 if len(line.value) == 1 and line.value[0].value[0].type == 'break':
                     if not is_empty(current_block):
                         result_wrapper["blocks"].append(current_block.copy())
-                    break_block = {"name": "break", "type": "break", "condition": line.value[0].test.dumps()}
-                    result_wrapper["blocks"].append(break_block)
-                    current_block = {"name": "next", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
+                    #break_block = {"name": "break", "label": "BREAk", "type": "break", "condition": line.value[0].test.dumps()}
+                    #result_wrapper["blocks"].append(break_block)
+                    #current_block = {"name": "next", "label": "Update Variables", "type": "block", "wf_type": "bpmn:ServiceTask", "lines": []}
             else:
                 print("add lines to block")
                 print(current_block)
