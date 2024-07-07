@@ -29,7 +29,7 @@ class Config(object):
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or os.path.join(basedir, 'files')
     RESULT_FOLDER = os.environ.get('RESULT_FOLDER') or os.path.join(basedir, 'generated-files')
 
-    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:5040'
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://localhost:5010'
 
     API_TITLE = "qc-script-splitter"
     API_VERSION = "0.1"

@@ -9,11 +9,11 @@ COPY ./requirements.txt /app/requirements.txt
 RUN pip install -r requirements.txt
 COPY . /app
 
-EXPOSE 1612/tcp
+EXPOSE 8891/tcp
 
 ENV FLASK_APP=qc-script-splitter.py
 ENV FLASK_ENV=development
 ENV FLASK_DEBUG=0
 RUN echo "python -m flask db upgrade" > /app/startup.sh
-RUN echo "gunicorn qc-script-splitter:app -b 0.0.0.0:1612 -w 4 --timeout 500 --log-level info" >> /app/startup.sh
+RUN echo "gunicorn qc-script-splitter:app -b 0.0.0.0:8891 -w 4 --timeout 500 --log-level info" >> /app/startup.sh
 CMD [ "sh", "/app/startup.sh" ]
