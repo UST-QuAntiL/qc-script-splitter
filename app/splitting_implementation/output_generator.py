@@ -7,7 +7,7 @@ import shutil
 from app import app
 import ast
 
-def create_output(block):
+def create_output(block, global_assignments):
     if 'parameters' in block:
         parameters = block["parameters"]
     else:
@@ -19,7 +19,12 @@ def create_output(block):
     else:
         return_variables = []
 
-    res = f'def main({", ".join(parameters)}):\n'
+    for left_side, assignment in global_assignments:
+        parameters = [param for param in parameters if param not in [left_side]]
+
+        # Join filtered_parameters into a comma-separated string
+    params_str = ", ".join(parameters)
+    res = f'def main({params_str}):\n'
 
     # Keep track of return variables to be excluded
     excluded_return_variables = []
@@ -57,7 +62,7 @@ def find_global_assignments(codeblock):
 
 def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, result, global_assignments):
     if block["type"] == "block":
-        if create_output(block) is None:
+        if create_output(block, global_assignments) is None:
             app.logger.info(f"Skipping block as it has no body")
             app.logger.info(block["id"])
             return
@@ -69,7 +74,7 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
 
         fw = open(f'{directory}/app.py', 'w')
         pa_writer = open(f'{directory}/polling_agent.py', 'w')
-        polling_agent = generate_polling_agent(block, block['parameters'], block['return_variables'])
+        polling_agent = generate_polling_agent(block, block['parameters'], block['return_variables'], global_assignments)
         pa_writer.write(polling_agent)
         templatesDirectory = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))),
                                           'templates')
@@ -84,7 +89,7 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
                     print(imp)
                     starting_point2.write(imp.dumps())
                     starting_point2.write('\n')
-                starting_point2.write(create_output(block))
+                starting_point2.write(create_output(block, global_assignments))
                 starting_point2.write('\n')
                 starting_point2.write(all_functions.dumps())
                 
@@ -121,7 +126,7 @@ def write_blocks(pythonfile, requirementsfile, block, all_functions, imports, re
                     new_content += imp.dumps() + '\n'
                 new_content += '\n'
                 new_content += content[:def_index]
-                for var in global_assignments:
+                for left_side, var in global_assignments:
                     new_content += var + '\n'
                 new_content += content[def_index:]
                 starting_point2.write(new_content)

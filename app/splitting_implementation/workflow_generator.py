@@ -16,10 +16,12 @@ class WorkflowJson:
         sequence_flow = {
             "type": "bpmn:SequenceFlow",
             "sourceRef": source_ref,
-            "targetRef": target_ref
+            "targetRef": target_ref,
+            "label": ""
         }
         if condition is not None:
-            sequence_flow["condition"] = condition
+            sequence_flow["condition"] = condition.replace("and", "&&")
+            sequence_flow["label"] = "Yes"
         self.sequence_flows.append(sequence_flow)
 
     def add_end(self):
@@ -30,6 +32,7 @@ class WorkflowJson:
         self.wf_result.append({
             "type": block["wf_type"],
             "id": block["id"],
+            "label": block.get("label", ""),
             "file": f"{block['id']}",
             "return_variables": block['return_variables'],
             "parameters": block['parameters']
@@ -41,9 +44,9 @@ class WorkflowJson:
         first = f"ExclusiveGateway_{self.gateway_counter}"
         second = f"Gateway_{self.gateway_counter+1}"
         third = f"Gateway_{self.gateway_counter + 2}"
-        self.gateway_counter += 3
+        self.gateway_counter += 2
 
-        self.wf_result.append({"id": first, "type": "bpmn:ExclusiveGateway"})
+        self.wf_result.append({"id": first, "label": "", "type": "bpmn:ExclusiveGateway"})
         self.append_sequence_flow(first)
 
         self.last_element_id = first
@@ -53,15 +56,15 @@ class WorkflowJson:
             self.generate_wf(x)
 
         
-
-        self.wf_result.append({"id": second, "type": "bpmn:ExclusiveGateway", "condition": "${" + inner_block['condition'] + "}"})
+        conditionExpression = inner_block['condition'].replace("and", "&&")
+        self.wf_result.append({"id": second, "type": "bpmn:ExclusiveGateway", "label": "", "condition": "${" + conditionExpression + "}"})
         self.append_sequence_flow(second)
-        self.wf_result.append({"id": third, "type": "bpmn:ExclusiveGateway"})
+        #self.wf_result.append({"id": third, "type": "bpmn:ExclusiveGateway"})
         self.add_sequence_flow(second, first, "${" + inner_block['condition'] + "}")
         # negation of the loop condition
-        self.add_sequence_flow(second, third, "${!(" + inner_block['condition'] + ")}")
+        #self.add_sequence_flow(second, third, "${!(" + inner_block['condition'] + ")}")
 
-        self.last_element_id = third
+        self.last_element_id = second
         self.break_id = None
 
     def add_break(self, block):
@@ -75,6 +78,7 @@ class WorkflowJson:
         self.last_element_id = "ExclusiveGateway_break"
 
     def generate_wf(self, block):
+        print(block)
         if block["name"] == "root":
             self.add_start(block['parameters'])
             for x in block["blocks"]:
@@ -83,6 +87,7 @@ class WorkflowJson:
         elif block["type"] == "wrapper":
             self.add_while(block)
         elif block["type"] == "block":
+            print(block["lines"])
             self.append_with_sequence_flow(block)
         elif block["type"] == "break":
             self.add_break(block)

@@ -182,7 +182,7 @@ class ScriptAnalyzer:
                     print("create block split")
                     result_wrapper["blocks"].append(current_block.copy())
                 if line.value[9:]:
-                    part_name = line.value[9:].replace(" ", "_")
+                    part_name = line.value[9:].replace(" ", "")
                     wf_type, label = get_wf_type(line.value[9:])
                     print("create block quantme")
                     current_block = {"name": part_name, "label": label, "type": "block", "wf_type": wf_type, "lines": []}

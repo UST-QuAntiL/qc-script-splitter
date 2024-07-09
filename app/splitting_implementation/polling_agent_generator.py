@@ -23,7 +23,7 @@ import tempfile
 from os.path import basename
 
 
-def generate_polling_agent(block, parameters, return_values):
+def generate_polling_agent(block, parameters, return_values, global_assignments):
     # Read from polling agent template
 
      # directory containing all templates required for generation
@@ -39,6 +39,10 @@ def generate_polling_agent(block, parameters, return_values):
 
     # handle variable retrieval for input data
     load_data_str = ''
+    filtered_results = []
+    for left_side, assignment in global_assignments:
+        parameters = [param for param in parameters if param not in [left_side]]
+
     #print('Number of input parameters: %d' % len(parameters))
     for inputParameter in parameters:
         load_data_str += '\n'
@@ -71,7 +75,7 @@ def generate_polling_agent(block, parameters, return_values):
 
         # Filter out excluded return variables
     filtered_return_variables = [var for var in return_values if var not in excluded_return_variables]
-
+    r_variables =[]
     call_str = ", ".join(filtered_return_variables)
 
     if len(filtered_return_variables) > 0:

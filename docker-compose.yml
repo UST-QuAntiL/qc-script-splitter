@@ -4,39 +4,39 @@ volumes:
   exec_data:
 
 services:
-  redis:
+  qc-script-redis:
     image: redis:latest
-    command: --port 5040
+    command: --port 5010
     ports:
-      - "5040:5040"
+      - "5010:5010"
     networks:
       - default
 
   qc-script-splitter:
-    image: planqk/qc-script-splitter:local
+    image: stiliala/qc-script-splitter:local
     command: sh /app/startup.sh
     ports:
-      - "1612:1612"
+      - "8891:8891"
     environment:
-      - REDIS_URL=redis://redis:5040
+      - REDIS_URL=redis://qc-script-redis:5010
       - DATABASE_URL=sqlite:////data/app.db
     volumes:
       - exec_data:/data
     networks:
       - default
 
-  rq-worker:
-    image: planqk/qc-script-splitter:local
-    command: rq worker --url redis://redis:5040 qc-script-splitter
+  qc-script-rq-worker:
+    image: stiliala/qc-script-splitter:local
+    command: rq worker --url redis://qc-script-redis:5010 qc-script-splitter
     environment:
-      - REDIS_URL=redis://redis:5040
+      - REDIS_URL=redis://qc-script-redis:5010
       - DATABASE_URL=sqlite:////data/app.db
       - FLASK_RUN_HOST=qc-script-splitter
-      - FLASK_RUN_PORT=1612
+      - FLASK_RUN_PORT=8891
     volumes:
       - exec_data:/data
     depends_on:
-      - redis
+      - qc-script-redis
     deploy:
       replicas: 1
 

@@ -131,9 +131,11 @@ def do_the_split(implementations_url):
 
 def find_global_assignments(redbaron):
         global_assignments = []
+        
         for node in redbaron.find_all('assignment'):
             if not node.parent_find('def'):
-                global_assignments.append(node.dumps())
+                left_side = node.target.dumps()
+                global_assignments.append((left_side, node.dumps()))
         return global_assignments
 
 def zip_polling_agent(requirements, polling_agent, starting_point):
