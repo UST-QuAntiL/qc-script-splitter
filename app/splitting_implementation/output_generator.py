@@ -206,8 +206,10 @@ def zip_polling_agent(requirements, polling_agent, starting_point, script_id):
                 raise FileNotFoundError(f"Starting point file {starting_point.name} not found")
 
             # Add the requirements file
-            with open(os.path.join(templatesDirectory, 'requirements.txt'), 'rb') as requirements_file:
-                zipObj1.writestr('requirements.txt', requirements_file.read())
+            # Write the requirements content to a temporary file
+            with open(requirements, "r") as req_file:
+                requirements_content = req_file.read()
+                zipObj1.writestr('requirements.txt', requirements_content)
     except Exception as e:
         print(f"Error creating service.zip: {e}")
         raise
