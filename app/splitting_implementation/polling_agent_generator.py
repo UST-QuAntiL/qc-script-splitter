@@ -46,12 +46,12 @@ def generate_polling_agent(block, parameters, return_values, global_assignments)
     #print('Number of input parameters: %d' % len(parameters))
     for inputParameter in parameters:
         load_data_str += '\n'
-        load_data_str += '                    if variables.get("' + inputParameter + '").get("type").casefold() in ["string", "long", "double", "boolean"]:\n'
+        load_data_str += '                    if variables.get("' + inputParameter + '").get("type").casefold() in ["long", "double", "boolean"]:\n'
         load_data_str += '                        print("Input Parameter ' + inputParameter + ' (basic type)")\n'
         load_data_str += '                        ' + inputParameter + ' = variables.get("' + inputParameter + '").get("value")\n'
         load_data_str += '                        print("...value: %s" % ' + inputParameter + ')\n'
         load_data_str += '                    else:\n'
-        load_data_str += '                        print("Input Parameter ' + inputParameter + ' (pickle)")\n'
+        load_data_str += '                        print("Input Parameter ' + inputParameter + ' ")\n'
         load_data_str += '                        ' + inputParameter + ' = download_data(camundaEndpoint + "/process-instance/" + externalTask.get("processInstanceId") + "/variables/' + inputParameter + '/data")\n'
         load_data_str += '                        print("...downloaded value: %s" % ' + inputParameter + ')\n'
 
@@ -104,10 +104,7 @@ def generate_polling_agent(block, parameters, return_values, global_assignments)
     for outputParameter in filtered_return_variables:
         # encode output parameter as file to circumvent the Camunda size restrictions on strings
         outputHandler += '\n'
-        outputHandler += '                    if isinstance(' + outputParameter + ', str):\n'
-        outputHandler += '                        print("OutputParameter (string) %s" % ' + outputParameter + ')\n'
-        outputHandler += '                        body["variables"]["' + outputParameter + '"] = {"value": ' + outputParameter + ', "type": "string"}\n'
-        outputHandler += '                    elif isinstance(' + outputParameter + ', int):\n'
+        outputHandler += '                    if isinstance(' + outputParameter + ', int):\n'
         outputHandler += '                        print("OutputParameter (int) %s" % ' + outputParameter + ')\n'
         outputHandler += '                        body["variables"]["' + outputParameter + '"] = {"value": ' + outputParameter + ', "type": "long"}\n'
         outputHandler += '                    elif isinstance(' + outputParameter + ', float):\n'
