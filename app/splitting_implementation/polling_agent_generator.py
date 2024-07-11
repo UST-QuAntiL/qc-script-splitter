@@ -46,7 +46,7 @@ def generate_polling_agent(block, parameters, return_values, global_assignments)
     #print('Number of input parameters: %d' % len(parameters))
     for inputParameter in parameters:
         load_data_str += '\n'
-        load_data_str += '                    if variables.get("' + inputParameter + '").get("type").casefold() in ["long", "double", "boolean"]:\n'
+        load_data_str += '                    if variables.get("' + inputParameter + '").get("type").casefold() in ["integer", "double", "boolean"]:\n'
         load_data_str += '                        print("Input Parameter ' + inputParameter + ' (basic type)")\n'
         load_data_str += '                        ' + inputParameter + ' = variables.get("' + inputParameter + '").get("value")\n'
         load_data_str += '                        print("...value: %s" % ' + inputParameter + ')\n'
@@ -106,7 +106,7 @@ def generate_polling_agent(block, parameters, return_values, global_assignments)
         outputHandler += '\n'
         outputHandler += '                    if isinstance(' + outputParameter + ', int):\n'
         outputHandler += '                        print("OutputParameter (int) %s" % ' + outputParameter + ')\n'
-        outputHandler += '                        body["variables"]["' + outputParameter + '"] = {"value": ' + outputParameter + ', "type": "long"}\n'
+        outputHandler += '                        body["variables"]["' + outputParameter + '"] = {"value": ' + outputParameter + ', "type": "integer"}\n'
         outputHandler += '                    elif isinstance(' + outputParameter + ', float):\n'
         outputHandler += '                        print("OutputParameter (float) %s" % ' + outputParameter + ')\n'
         outputHandler += '                        body["variables"]["' + outputParameter + '"] = {"value": ' + outputParameter + ', "type": "double"}\n'
