@@ -29,16 +29,20 @@ class WorkflowJson:
         self.append_sequence_flow(target_ref="EndEvent_1")
 
     def append_with_sequence_flow(self, block):
-        self.wf_result.append({
-            "type": block["wf_type"],
-            "id": block["id"],
-            "label": block.get("label", ""),
-            "file": f"{block['id']}",
-            "return_variables": block['return_variables'],
-            "parameters": block['parameters']
-        })
-        self.append_sequence_flow(target_ref=block['id'])
-        self.last_element_id = block["id"]
+        print("APPEND")
+        print(block["id"])
+        print(block["return_variables"])
+        if(block["return_variables"] != []):
+            self.wf_result.append({
+                "type": block["wf_type"],
+                "id": block["id"],
+                "label": block.get("label", ""),
+                "file": f"{block['id']}",
+                "return_variables": block['return_variables'],
+                "parameters": block['parameters']
+            })
+            self.append_sequence_flow(target_ref=block['id'])
+            self.last_element_id = block["id"]
 
     def add_while(self, inner_block):
         first = f"ExclusiveGateway_{self.gateway_counter}"

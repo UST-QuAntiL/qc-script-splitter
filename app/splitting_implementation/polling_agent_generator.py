@@ -43,6 +43,7 @@ def generate_polling_agent(block, parameters, return_values, global_assignments)
     for left_side, assignment in global_assignments:
         parameters = [param for param in parameters if param not in [left_side]]
 
+
     #print('Number of input parameters: %d' % len(parameters))
     for inputParameter in parameters:
         load_data_str += '\n'
@@ -51,9 +52,13 @@ def generate_polling_agent(block, parameters, return_values, global_assignments)
         load_data_str += '                        ' + inputParameter + ' = variables.get("' + inputParameter + '").get("value")\n'
         load_data_str += '                        print("...value: %s" % ' + inputParameter + ')\n'
         load_data_str += '                    else:\n'
-        load_data_str += '                        print("Input Parameter ' + inputParameter + ' ")\n'
-        load_data_str += '                        ' + inputParameter + ' = download_data(camundaEndpoint + "/process-instance/" + externalTask.get("processInstanceId") + "/variables/' + inputParameter + '/data")\n'
-        load_data_str += '                        print("...downloaded value: %s" % ' + inputParameter + ')\n'
+        load_data_str += '                        try:\n'
+        load_data_str += '                            ' + inputParameter + ' = variables.get("' + inputParameter + '").get("value")\n'
+        load_data_str += '                            if ' + inputParameter + ' is None:\n'
+        load_data_str += '                                ' + inputParameter + ' = download_data(camundaEndpoint + "/process-instance/" + externalTask.get("processInstanceId") + "/variables/' + inputParameter + '/data")\n'
+        load_data_str += '                        except Exception as err:\n'
+        load_data_str += '                            ' + inputParameter + ' = download_data(camundaEndpoint + "/process-instance/" + externalTask.get("processInstanceId") + "/variables/' + inputParameter + '/data")\n'
+        load_data_str += '                            print("...downloaded value: %s" % ' + inputParameter + ')\n'
 
     content = content.replace("### LOAD INPUT DATA ###", load_data_str)
 
